@@ -1,0 +1,80 @@
+name: reusable terraform deploy script
+
+on:
+  workflow_call:
+    inputs:
+      terraform-version:
+        type: string
+        default: "1.2.2"
+        required: false
+      refresh-terraform:
+        required: false
+        type: string
+        default: true
+      environment:
+        type: string
+        required: true
+    secrets:
+      clientId:
+        required: true
+      clientSecret:
+        required: true
+      subscriptionId:
+        required: true
+      tenantId:
+        required: true
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.clientId }}
+  ARM_CLIENT_SECRET: ${{ secrets.clientSecret }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.subscriptionId }}
+  ARM_TENANT_ID: ${{ secrets.tenantId }}
+
+jobs:
+  deploy-cross:
+    runs-on: [self-hosted]
+    # runs-on: [windows-latest]
+    name: Deploy to cross
+    defaults:
+      run:
+        working-directory: src/terraform/Environments/${{inputs.environment}}/cross/
+    concurrency: cross-${{inputs.environment}}-deployment
+    environment: cross-${{inputs.environment}}-deployment
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hashicorp/setup-terraform@main
+        with:
+          terraform_version: ${{inputs.terraform-version}}
+          terraform_wrapper: false
+      - run: terraform init
+      - run: terraform validate
+      - name: terraform apply
+        run: terraform apply -auto-approve -refresh=${{inputs.refresh-terraform}}
+        env:
+          refreshString: ${{ inputs.refresh-terraform }}
+
+  deploy-domains:
+    needs: [deploy-cross]
+    runs-on: [self-hosted]
+    name: Deploy to ${{matrix.domain}}
+    strategy:
+      matrix:
+#        domain: ["dist", "em"] # Dist removed while waiting for SPN API permissions
+        domain: ["em"]
+    defaults:
+      run:
+        working-directory: src/terraform/Environments/${{inputs.environment}}/${{matrix.domain}}/
+    concurrency: ${{matrix.domain}}-${{inputs.environment}}-deployment
+    environment: ${{matrix.domain}}-${{inputs.environment}}-deployment
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{inputs.terraform-version}}
+      - run: terraform init
+      - run: terraform validate
+      - name: terraform apply
+        run: terraform apply -auto-approve -refresh=$refreshString
+        env:
+          refreshString: ${{ inputs.refresh-terraform }}

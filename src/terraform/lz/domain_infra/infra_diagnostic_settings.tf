@@ -1,0 +1,3 @@
+locals {
+  logRetentionDays = 210
+}

@@ -1,0 +1,22 @@
+name: Check terraform code
+
+on:
+  workflow_call:
+    inputs:
+      terraform-version:
+        type: string
+        required: true
+
+
+jobs:
+  check-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{inputs.terraform-version}}
+
+      - run: terraform -chdir="./src/terraform/" fmt -check -recursive
+

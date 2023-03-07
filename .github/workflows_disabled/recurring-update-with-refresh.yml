@@ -1,0 +1,18 @@
+name: recurring-deployment-with-refresh
+on:
+  schedule:
+    - cron: '0 20 * * 1,3,5'
+
+jobs:
+  Deploy-dev:
+    uses: ./.github/workflows/deploy-terraform.yml
+    with:
+      refresh-terraform: "true"
+      environment: dev
+    secrets:
+      clientId: ${{ secrets.clientId }}
+      clientSecret: ${{ secrets.clientSecret }}
+      subscriptionId: ${{ secrets.subscriptionId }}
+      tenantId: ${{ secrets.tenantId }}
+
+

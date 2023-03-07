@@ -1,0 +1,27 @@
+name: validate-and-deploy-dev
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/terraform/**"
+      - ".github/workflows/**"
+
+jobs:
+  code-check:
+    uses: ./.github/workflows/verifyTerraform.yml
+    with:
+      terraform-version: 1.2.2
+
+  Deploy-Domains:
+    uses: ./.github/workflows/deploy-terraform.yml
+    needs: code-check
+    with:
+      refresh-terraform: "true"
+      environment: dev
+    secrets:
+      clientId: ${{ secrets.clientId }}
+      clientSecret: ${{ secrets.clientSecret }}
+      subscriptionId: ${{ secrets.subscriptionId }}
+      tenantId: ${{ secrets.tenantId }}
+
+
